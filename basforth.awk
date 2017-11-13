@@ -141,7 +141,7 @@ function Cycle(w)
     else if (w == "XOR")  { w = S[pS--]; T = Bool((w && !T) || (!w && T)); }
     else if (w == "NEGATE") T = -T;
     else if (w == "ABS")  { if (T < 0) T = -T; }
-    else if (w == "NOT")  T = !T;
+    else if (w == "NOT")  T = Bool(!T);
     else if (w == "*/")   { w = T; DROP(); w *= T; DROP(); T = w / T; }
     else if (w == "DUP")  S[++pS] = T;
     else if (w == "DROP") T = S[pS--];
