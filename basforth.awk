@@ -1,13 +1,18 @@
 BEGIN \
 {
-  # M[] memory
-  # data stack S[]+pS T I R[]+pR return stack
+  # M[] is memory
+  # T top of data stack
+  # S[]+pS data stack
+  # I top of return stack
+  # R[]+pR return stack
   # P program counter
   # H dict ptr
   # D current dict
+  # XP exec program counter
 
   # init
-  H = 0; FORTH = 0; MACRO = 1;
+  H = 1; FORTH = 0; MACRO = 1;
+  dictNames[FORTH] = "FORTH"; dictNames[MACRO] = "MACRO";
   # init dict
   InitDict();
 
@@ -29,78 +34,58 @@ function Refill(rc)
   DollI = 1;
 }
 
-function Prim(tok,nomac)
+function DefExec(dict,tok)
 {
   # Compile("\"" tok "\"");
-  Dict[FORTH,tok] = H;
-  # printf "--- FORTH %d: %s\n",H,tok;
+  Dict[dict,tok] = H;
+  # printf "--- %s %d: %s\n",dictNames[dict],H,tok;
   Compile(tok);
   Compile("RET");
+}
 
-  if (nomac) return;
-
+function DefComp(dict,tok)
+{
   # Compile("\"" tok "\"");
-  Dict[MACRO,tok] = H;
-  # printf "--- MACRO %d: %s\n",H,tok;
+  Dict[dict,tok] = H;
+  # printf "--- %s %d: %s\n",dictNames[dict],H,tok;
   Compile("COMPILE");
   Compile(tok);
   Compile("RET");
 }
 
-function Macro(tok)
+function Prim(toks,nomac,tok,n,i)
 {
-  # Compile("\"" tok "\"");
-  Dict[MACRO,tok] = H;
-  # printf "--- MACRO %d: %s\n",H,tok;
-  Compile(tok);
-  Compile("RET");
+  if (toks == ",") {
+    tok[1] = ","; n = 1;
+  } else
+    n = split(toks,tok,",");
+  for (i = 1; i <= n; i++)
+    DefExec(FORTH,tok[i]);
+
+  if (nomac) return;
+
+  for (i = 1; i <= n; i++)
+    DefComp(MACRO,tok[i]);
+}
+
+function Macro(toks,tok,n,i)
+{
+  n = split(toks,tok,",");
+  for (i = 1; i <= n; i++)
+    DefExec(MACRO,tok[i]);
 }
 
 function InitDict()
 {
-  Prim("+");
-  Prim("-");
-  Prim("*");
-  Prim("/");
-  Prim("MOD");
-  Prim("MIN");
-  Prim("MAX");
-  Prim("<");
-  Prim(">");
-  Prim("=");
-  Prim("AND");
-  Prim("OR");
-  Prim("XOR");
-  Prim("NEGATE");
-  Prim("ABS");
-  Prim("NOT");
-  Prim("*/");
-  Prim("DUP");
-  Prim("DROP");
-  Prim("SWAP");
-  Prim("OVER");
-  Prim("DECIMAL");
-  Prim("HEX");
-  Prim(".");
-  Prim(".R");
-  Prim("CR");
+  Prim("+,-,*,/,MOD,MIN,MAX,<,>,=,AND,OR,XOR,NEGATE,ABS,NOT,*/");
+  Prim("DUP,DROP,SWAP,OVER,DECIMAL,HEX,.,.R,CR");
   Prim(":",1);
-  Prim("VARIABLE");
-  Prim("CREATE");
-  Prim("ALLOT");
+  Prim("VARIABLE,CREATE,ALLOT");
   Prim(",");
-  Prim("@");
-  Prim("!");
-  Prim("EMPTY");
-  Prim("BYE");
+  Prim("@,!,EMPTY,BYE");
 
-  Macro("IF");
-  Macro("ELSE");
-  Macro("THEN");
-  Macro("FOR");
-  Macro("I");
-  Macro("NEXT");
-  Macro(";");
+  Macro("IF,ELSE,THEN,FOR,NEXT,;");
+  DefComp(MACRO,"I");
 
   HMark = H;
   # printf "--- HMark = %d\n",HMark;
@@ -164,7 +149,6 @@ function Cycle(w)
     else if (w == "OVER") { w = S[pS]; DUP(); T = w; }
     else if (w == "POP")  { DUP(); T = I; I = R[pR--]; }
     else if (w == "PUSH") { R[++pR] = I; I = T; DROP(); }
-    else if (w == "RAT")  { DUP(); T = I; }
     else if (w == "BRA")  P = M[P];
     else if (w == "BRZ")  { w = M[P++]; if (!T)    P = w; DROP(); }
     else if (w == "BRM")  { w = M[P++]; if (T < 0) P = w; DROP(); }
@@ -187,7 +171,7 @@ function Cycle(w)
     else if (w == "ELSE") { Compile("BRA"); Compile(0); THEN(); DUP(); T=H-1; }
     else if (w == "THEN") { M[T] = H; DROP(); }
     else if (w == "FOR")  { Compile("PUSH"); DUP(); T = H; }
-    else if (w == "I")    { Compile("RAT"); }
+    else if (w == "I")    { DUP(); T = I; }
     else if (w == "NEXT") { Compile("DBRZ"); Compile(T); DROP(); }
     else if (w == "COMPILE") { Compile(M[P++]); }
     else if (w == "BYE")  { exit(0); }
