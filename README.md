@@ -6,7 +6,7 @@ This is a simple FORTH written in AWK. It supports C.H.Moore's introductory voca
 Run with the following line.
 ```sh
 $ cat - | awk -f basforth.awk
-```sh
+```
 
 License
 ----
