@@ -133,15 +133,15 @@ function Cycle(w)
     else if (w == "MOD")  T = S[pS--] % T;
     else if (w == "MIN")  { w = T; DROP(); if (w < T) T = w; }
     else if (w == "MAX")  { w = T; DROP(); if (w > T) T = w; }
-    else if (w == "<")    { T = Bool(S[pS--] <  T); }
-    else if (w == ">")    { T = Bool(S[pS--] >  T); }
-    else if (w == "=")    { T = Bool(S[pS--] == T); }
-    else if (w == "AND")  { T = Bool(T && S[pS--]); }
-    else if (w == "OR")   { T = Bool(T || S[pS--]); }
+    else if (w == "<")    T = Bool(S[pS--] <  T);
+    else if (w == ">")    T = Bool(S[pS--] >  T);
+    else if (w == "=")    T = Bool(S[pS--] == T);
+    else if (w == "AND")  T = Bool(T && S[pS--]);
+    else if (w == "OR")   T = Bool(T || S[pS--]);
     else if (w == "XOR")  { w = S[pS--]; T = Bool((w && !T) || (!w && T)); }
-    else if (w == "NEGATE") { T = -T; }
+    else if (w == "NEGATE") T = -T;
     else if (w == "ABS")  { if (T < 0) T = -T; }
-    else if (w == "NOT")  { T = !T; }
+    else if (w == "NOT")  T = !T;
     else if (w == "*/")   { w = T; DROP(); w *= T; DROP(); T = w / T; }
     else if (w == "DUP")  S[++pS] = T;
     else if (w == "DROP") T = S[pS--];
@@ -154,41 +154,39 @@ function Cycle(w)
     else if (w == "BRM")  { w = M[P++]; if (T < 0) P = w; DROP(); }
     else if (w == "DBRZ") { w = M[P++]; if (--I < 0) I = R[pR--]; else P = w; }
     else if (w == "RET")  { P = I; I = R[pR--]; }
-    else if (w == "DECIMAL") { HexOut = 0; }
-    else if (w == "HEX")  { HexOut = 1; }
+    else if (w == "DECIMAL") HexOut = 0;
+    else if (w == "HEX")  HexOut = 1;
     else if (w == ".")    { w = T; DROP(); Dot(w, 0); }
     else if (w == ".R")   { w = T; DROP(); Dot(T, w); DROP(); }
-    else if (w == "CR")   { printf "\n"; }
+    else if (w == "CR")   printf "\n";
     else if (w == ":")    { Head(); DoCompile(); }
     else if (w == ";")    { Compile("RET"); STATE = 0; }
     else if (w == "DOVAR")    { DUP(); T = H+1; P = I; I = R[pR--]; }
     else if (w == "VARIABLE") { Create(); H++; }
-    else if (w == "CREATE")   { Create(); }
+    else if (w == "CREATE")   Create();
     else if (w == "ALLOT")    { H += T; DROP(); }
     else if (w == ",")        { Compile(T); DROP(); }
-    else if (w == "EMPTY"){ H = HMark; }
+    else if (w == "EMPTY")    H = HMark;
     else if (w == "IF")   { Compile("BRZ"); DUP(); T = H; Compile(0); }
     else if (w == "ELSE") { Compile("BRA"); Compile(0); THEN(); DUP(); T=H-1; }
     else if (w == "THEN") { M[T] = H; DROP(); }
     else if (w == "FOR")  { Compile("PUSH"); DUP(); T = H; }
     else if (w == "I")    { DUP(); T = I; }
     else if (w == "NEXT") { Compile("DBRZ"); Compile(T); DROP(); }
-    else if (w == "COMPILE") { Compile(M[P++]); }
-    else if (w == "BYE")  { exit(0); }
+    else if (w == "COMPILE")  Compile(M[P++]);
+    else if (w == "BYE")  exit(0);
     else if (w == "HALT") return;
   }
 }
 
 function Execute(p,oldXP,oldP)
 {
-  oldXP = XP;
-  oldP  = P;
+  oldXP = XP; oldP  = P;
   P = XP;
   M[XP++] = p;
   M[XP++] = "HALT";
   Cycle();
-  XP = oldXP;
-   P = oldP;
+  XP = oldXP; P = oldP;
 }
 
 # interpreter
@@ -196,21 +194,18 @@ function DoInterpret(i,w)
 {
   while (1) {
     if (!NF) printf "OK ";
-    else {
+    else
       for (; DollI <= NF; DollI++) {
         w = toupper($DollI);
         # printf "--- w: [%s]\n",w;
-        if ((FORTH,w) in Dict) {
-          Execute(Dict[FORTH,w]);
-        } else if (match(w, /-?[0-9]+/)) {
-          DUP(); T = w+0; 
-        } else {
+        if ((FORTH,w) in Dict) Execute(Dict[FORTH,w]);
+        else if (match(w, /-?[0-9]+/)) { DUP(); T = w+0; }
+        else {
           printf "%s ? ",$DollI;
           DollI = NF+1;
           break;
         }
       }
-    }
     Refill();
   }
 }
@@ -226,10 +221,8 @@ function DoCompile()
       # printf "--- w: [%s]\n",w;
       if ((MACRO,w) in Dict) Execute(Dict[MACRO,w]);
       else if ((FORTH,w) in Dict) Compile(Dict[FORTH,w]);
-      else if (match(w, /-?[0-9]+/)) {
-        Compile("LIT");
-        Compile(w + 0);
-      } else {
+      else if (match(w, /-?[0-9]+/)) { Compile("LIT"); Compile(w + 0); }
+      else {
         print "%s ? ",$DollI;
         STATE = 0; DollI = NF+1;
         break;
@@ -241,8 +234,7 @@ function DoCompile()
 
 END \
 {
-  for (i = 0; i < H; i++) {
+  for (i = 0; i < H; i++)
     printf "%05d %s\n",i,M[i];
-  }
   exit(0);
 }
